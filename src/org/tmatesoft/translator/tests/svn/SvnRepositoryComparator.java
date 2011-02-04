@@ -1,8 +1,7 @@
 package org.tmatesoft.translator.tests.svn;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
@@ -11,8 +10,11 @@ import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
+import org.tmatesoft.translator.tests.comparator.CommitTree;
+import org.tmatesoft.translator.tests.comparator.CommitTreeDifference;
+import org.tmatesoft.translator.tests.comparator.RepositoryComparator;
 
-public class SvnRepositoryComparator {
+public class SvnRepositoryComparator extends RepositoryComparator {
 	
 	private String myURL1;
 	private String myURL2;
@@ -35,52 +37,39 @@ public class SvnRepositoryComparator {
 	
 	/**
 	 * @return true if repositories are equal, false otherwise.
-	 */
-	public boolean compare(StringBuffer result) throws SVNException {
+	 */	
+	public List<CommitTreeDifference> compare() throws SVNException {
 		SVNRepository r1 = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(myURL1));
 		SVNRepository r2 = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(myURL2));
+		
 		SvnTreeUpdater u1 = new SvnTreeUpdater(r1);
 		SvnTreeUpdater u2 = new SvnTreeUpdater(r2);
+		
+		List<CommitTreeDifference> diffs = new LinkedList<CommitTreeDifference>();
 		try {
 			while(u1.hasNext() && u2.hasNext()) {
-				SvnTree t1 = u1.next();
-				SvnTree t2 = u2.next();
-				
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				PrintStream out = new PrintStream(baos);
-				StringBuffer report = new StringBuffer();
-				try {
-					t1.compareTo(t2, out);
-				} finally {
-					out.flush();
-					out.close();
-					
-					try {
-						report.append(baos.toString("UTF-8"));
-					} catch (UnsupportedEncodingException e) {
-						report.append(e.getMessage());
-					}
-					if (report.length() > 0) {
-						result.append(report);
-						return false;
-					}
- 				}
+				CommitTree t1 = u1.next();
+				CommitTree t2 = u2.next();
+				CommitTreeDifference diff = new CommitTreeDifference(t1, t2);
+				if (!diff.isEmpty()) {
+					diffs.add(diff);
+				}
 			}
-
-			if (u1.hasNext()) {
-				result.append("More revisions expected than present, expected: " + r1.getLatestRevision() +", present: " + r2.getLatestRevision() + "\n");
-				return false;
+			while (u1.hasNext()) {
+				CommitTreeDifference diff = new CommitTreeDifference(u1.next(), null);
+				diff.compute();
+				diffs.add(diff);
 			}
-			
-			if (u2.hasNext()) {
-				result.append("Less revisions expected than present, expected: " + r1.getLatestRevision() +", present: " + r2.getLatestRevision() + "\n");
-				return false;
+			while (u2.hasNext()) {
+				CommitTreeDifference diff = new CommitTreeDifference(null, u2.next());
+				diff.compute();
+				diffs.add(diff);
 			}
 		} finally {
 			u1.close();
 			u2.close();
 		}
 		
-		return true;
+		return diffs;
 	}
 }
