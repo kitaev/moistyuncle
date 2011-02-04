@@ -94,10 +94,11 @@ public class GitRepositoryComparator extends RepositoryComparator {
     		currentPath.push(root);
     		while(walk.next()) {
     			if (walk.getDepth() < depth) {
-    				for(int i = 0; i < depth - walk.getDepth() + 1; i++) {
+    				for(int i = 0; i < depth - walk.getDepth(); i++) {
     					root = currentPath.pop();
     				}
     			}
+    			root = currentPath.peek();
 				depth = walk.getDepth();
     			CommitTreeNode node = root.addChild(walk.getNameString());
     			node.setId(ObjectId.toString(walk.getObjectId(0)));
