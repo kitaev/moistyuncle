@@ -1,4 +1,4 @@
-package org.tmatesoft.translator.tests.svn;
+package org.tmatesoft.translator.tests.comparator.svn;
 
 import java.util.LinkedList;
 import java.util.List;

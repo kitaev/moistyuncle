@@ -2,8 +2,8 @@ package org.tmatesoft.translator.tests.comparator;
 
 import java.util.List;
 
-import org.tmatesoft.translator.tests.git.GitRepositoryComparator;
-import org.tmatesoft.translator.tests.svn.SvnRepositoryComparator;
+import org.tmatesoft.translator.tests.comparator.git.GitRepositoryComparator;
+import org.tmatesoft.translator.tests.comparator.svn.SvnRepositoryComparator;
 
 public abstract class RepositoryComparator {
 	

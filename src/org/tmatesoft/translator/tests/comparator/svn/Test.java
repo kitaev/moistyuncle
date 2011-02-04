@@ -1,4 +1,4 @@
-package org.tmatesoft.translator.tests.svn;
+package org.tmatesoft.translator.tests.comparator.svn;
 
 import java.io.IOException;
 import java.util.List;
@@ -12,7 +12,7 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.translator.tests.comparator.CommitTree;
 import org.tmatesoft.translator.tests.comparator.CommitTreeDifference;
-import org.tmatesoft.translator.tests.git.GitRepositoryComparator;
+import org.tmatesoft.translator.tests.comparator.git.GitRepositoryComparator;
 
 public class Test {
 

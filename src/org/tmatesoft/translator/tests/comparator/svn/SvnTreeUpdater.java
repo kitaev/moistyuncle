@@ -1,4 +1,4 @@
-package org.tmatesoft.translator.tests.svn;
+package org.tmatesoft.translator.tests.comparator.svn;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -1,4 +1,4 @@
-package org.tmatesoft.translator.tests.git;
+package org.tmatesoft.translator.tests.comparator.git;
 
 import java.io.File;
 import java.io.IOException;
