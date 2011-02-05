@@ -90,9 +90,19 @@ public class CommitTreeDifference {
 
 	@Override
 	public String toString() {
+		if (myNodeDifferences == null) {
+			return "not computed yet";
+		}
 		if (isEmpty()) {
 			return getCommitName() + ": commits are identical";
 		}
+		
+		if (getLeftTree() == null) {
+			return "+ commit: " + getCommitName() + "\n";
+		} else if (getRightTree() == null) {
+			return "- commit: " + getCommitName() + "\n";
+		}
+
 		StringBuffer result = new StringBuffer();
 		result.append("commit: ");
 		result.append(getCommitName());

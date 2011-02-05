@@ -110,9 +110,9 @@ public class PropertiesDifference {
 		for (String name : getDifferentProperties()) {
 			result.append("* ");
 			result.append(name);
-			result.append("\nleft: [");
+			result.append("\n   left: [");
 			result.append(toString(getLeftProperties().get(name)));
-			result.append("]\nright: [");
+			result.append("]\n   right: [");
 			result.append(toString(getRightProperties().get(name)));
 			result.append("]\n");
 		}
