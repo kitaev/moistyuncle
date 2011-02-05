@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
@@ -24,6 +22,7 @@ import org.tmatesoft.translator.tests.comparator.CommitTree;
 import org.tmatesoft.translator.tests.comparator.CommitTreeDifference;
 import org.tmatesoft.translator.tests.comparator.CommitTreeNode;
 import org.tmatesoft.translator.tests.comparator.RepositoryComparator;
+import org.tmatesoft.translator.tests.comparator.RepositoryDifference;
 
 
 public class GitRepositoryComparator extends RepositoryComparator {
@@ -41,7 +40,7 @@ public class GitRepositoryComparator extends RepositoryComparator {
 		return this;
 	}
 	
-	public List<CommitTreeDifference> compare() throws IOException {
+	public RepositoryDifference compare() throws IOException {
 		
 		Repository r1 = new RepositoryBuilder().setGitDir(myGitDir1).build();
 		Repository r2 = new RepositoryBuilder().setGitDir(myGitDir2).build();
@@ -49,7 +48,7 @@ public class GitRepositoryComparator extends RepositoryComparator {
         Iterator<RevCommit> i1 = createRevWalk(r1).iterator();
         Iterator<RevCommit> i2 = createRevWalk(r2).iterator();
 
-        List<CommitTreeDifference> diffs = new LinkedList<CommitTreeDifference>();
+        RepositoryDifference repositoryDifference = new RepositoryDifference();
         while(i1.hasNext() && i2.hasNext()) {
         	RevCommit commit1 = i1.next();
         	RevCommit commit2 = i2.next();
@@ -58,7 +57,7 @@ public class GitRepositoryComparator extends RepositoryComparator {
         	CommitTree tree2 = buildTree(r2, commit2);
         	CommitTreeDifference diff = new CommitTreeDifference(tree1, tree2);
         	if (!diff.isEmpty()) {
-        		diffs.add(diff);
+        		repositoryDifference.addCommitDifference(diff);
         	}
         }
         while(i1.hasNext()) {
@@ -67,7 +66,7 @@ public class GitRepositoryComparator extends RepositoryComparator {
         	CommitTree tree1 = buildTree(r1, commit1);
         	CommitTreeDifference diff = new CommitTreeDifference(tree1, null);
         	diff.compute();
-        	diffs.add(diff);
+    		repositoryDifference.addCommitDifference(diff);
         	
         }
         while(i2.hasNext()) {
@@ -76,9 +75,9 @@ public class GitRepositoryComparator extends RepositoryComparator {
         	CommitTree tree2 = buildTree(r2, commit2);
         	CommitTreeDifference diff = new CommitTreeDifference(null, tree2);
         	diff.compute();
-        	diffs.add(diff);
+    		repositoryDifference.addCommitDifference(diff);
         }
-	    return diffs;
+	    return repositoryDifference;
 	}
 	
 	private static CommitTree buildTree(Repository repository, RevCommit commit) throws IOException {

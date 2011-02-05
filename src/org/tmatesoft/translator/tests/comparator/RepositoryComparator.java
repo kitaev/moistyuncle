@@ -1,7 +1,5 @@
 package org.tmatesoft.translator.tests.comparator;
 
-import java.util.List;
-
 import org.tmatesoft.translator.tests.comparator.git.GitRepositoryComparator;
 import org.tmatesoft.translator.tests.comparator.svn.SvnRepositoryComparator;
 
@@ -16,6 +14,6 @@ public abstract class RepositoryComparator {
 		
 	}
 	
-	public abstract List<CommitTreeDifference> compare() throws Exception;
+	public abstract RepositoryDifference compare() throws Exception;
 
 }
