@@ -3,7 +3,6 @@ package org.tmatesoft.translator.tests.comparator;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class CommitTreeNode {
 
@@ -18,22 +17,37 @@ public class CommitTreeNode {
 	private String myContentChecksum;
 
 	public CommitTreeNode(CommitTree tree, CommitTreeNode parent, String name) {
-		this(tree, parent, name, null);
-	}
-	
-	public CommitTreeNode(CommitTree tree, CommitTreeNode parent, String name, String id) {
 		myTree = tree;
 		myParent = parent;
 		myName = name;
-		myProperties = new TreeMap<String, byte[]>();
-		myChildren = new TreeMap<String, CommitTreeNode>();
-		myId = id;
+	}
+
+	public CommitTreeNode copy(CommitTree copyTree, CommitTreeNode copyParent) {
+		CommitTreeNode copy = new CommitTreeNode(copyTree, copyParent, myName);
+		copy.myId = myId;
+		copy.myContentChecksum = myContentChecksum;
+		copy.myContents = myContents;
+		if (myProperties != null) {
+			copy.myProperties = new HashMap<String, byte[]>(myProperties);
+		}
+		if (myChildren != null) {
+			copy.myChildren = new HashMap<String, CommitTreeNode>();
+			for (CommitTreeNode child : myChildren.values()) {
+				copy.myChildren.put(child.getName(), child.copy(copyTree, copy));
+			}
+		}
+		return copy;
 	}
 	
 	public void setProperty(String name, byte[] value) {
 		if (value == null) {
-			myProperties.remove(name);
+			if (myProperties != null) {
+				myProperties.remove(name);
+			}
 		} else {
+			if (myProperties == null) {
+				myProperties = new HashMap<String, byte[]>();
+			}
 			myProperties.put(name, value);
 		}
 	}
@@ -82,6 +96,7 @@ public class CommitTreeNode {
 	
 	public void setId(String id) {
 		myId = id;
+		myContentChecksum = id;
 	}
 	
 	public void removeChild(String name) {
@@ -122,6 +137,14 @@ public class CommitTreeNode {
 	
 	public String getId() {
 		return myId;
+	}
+	
+	public String getContentId() {
+		return myContentChecksum;
+	}
+	
+	public boolean hasContentId() {
+		return getContentId() != null;
 	}
 
 	public void setContent(byte[] contents, String contentChecksum) {

@@ -43,25 +43,32 @@ public class SvnRepositoryComparator extends RepositoryComparator {
 		SvnTreeUpdater u1 = new SvnTreeUpdater(r1);
 		SvnTreeUpdater u2 = new SvnTreeUpdater(r2);
 		
-		RepositoryDifference repositoryDifference = new RepositoryDifference();
+		RepositoryDifference repositoryDifference = new RepositoryDifference(myURL1, myURL2);
 		try {
 			while(u1.hasNext() && u2.hasNext()) {
 				CommitTree t1 = u1.next();
 				CommitTree t2 = u2.next();
-				CommitTreeDifference diff = new CommitTreeDifference(t1, t2);
+				String name = Long.toString((Long) t1.getProperty("svn:revision"));
+				CommitTreeDifference diff = new CommitTreeDifference(name, t1, t2);
 				if (!diff.isEmpty()) {
 					repositoryDifference.addCommitDifference(diff);
 				}
 			}
 			while (u1.hasNext()) {
-				CommitTreeDifference diff = new CommitTreeDifference(u1.next(), null);
-				diff.compute();
-				repositoryDifference.addCommitDifference(diff);
+				CommitTree t1 = u1.next();
+				String name = Long.toString((Long) t1.getProperty("svn:revision"));
+				CommitTreeDifference diff = new CommitTreeDifference(name, t1, null);
+				if (!diff.isEmpty()) {
+					repositoryDifference.addCommitDifference(diff);
+				}
 			}
 			while (u2.hasNext()) {
-				CommitTreeDifference diff = new CommitTreeDifference(null, u2.next());
-				diff.compute();
-				repositoryDifference.addCommitDifference(diff);
+				CommitTree t2 = u2.next();
+				String name = Long.toString((Long) t2.getProperty("svn:revision"));
+				CommitTreeDifference diff = new CommitTreeDifference(name, null, t2);
+				if (!diff.isEmpty()) {
+					repositoryDifference.addCommitDifference(diff);
+				}
 			}
 		} finally {
 			u1.close();

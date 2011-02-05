@@ -3,6 +3,7 @@ package org.tmatesoft.translator.tests.comparator.git;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -21,6 +22,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.tmatesoft.translator.tests.comparator.CommitTree;
 import org.tmatesoft.translator.tests.comparator.CommitTreeDifference;
 import org.tmatesoft.translator.tests.comparator.CommitTreeNode;
+import org.tmatesoft.translator.tests.comparator.PropertiesDifference;
 import org.tmatesoft.translator.tests.comparator.RepositoryComparator;
 import org.tmatesoft.translator.tests.comparator.RepositoryDifference;
 
@@ -48,34 +50,46 @@ public class GitRepositoryComparator extends RepositoryComparator {
         Iterator<RevCommit> i1 = createRevWalk(r1).iterator();
         Iterator<RevCommit> i2 = createRevWalk(r2).iterator();
 
-        RepositoryDifference repositoryDifference = new RepositoryDifference();
+        RepositoryDifference repositoryDifference = new RepositoryDifference(
+        		myGitDir1.getAbsolutePath().replace(File.separatorChar, '/'),
+        		myGitDir2.getAbsolutePath().replace(File.separatorChar, '/'));
+        
+        PropertiesDifference referencesDifference = new PropertiesDifference(getReferences(r1), getReferences(r2));
+        if (!referencesDifference.isEmpty()) {
+        	repositoryDifference.setReferencesDifference(referencesDifference);
+        }
+        
+        long index = 0;
         while(i1.hasNext() && i2.hasNext()) {
         	RevCommit commit1 = i1.next();
         	RevCommit commit2 = i2.next();
 
         	CommitTree tree1 = buildTree(r1, commit1);
         	CommitTree tree2 = buildTree(r2, commit2);
-        	CommitTreeDifference diff = new CommitTreeDifference(tree1, tree2);
+        	CommitTreeDifference diff = new CommitTreeDifference(Long.toString(index++), tree1, tree2);
         	if (!diff.isEmpty()) {
         		repositoryDifference.addCommitDifference(diff);
         	}
         }
+
         while(i1.hasNext()) {
         	RevCommit commit1 = i1.next();
-
+        	
         	CommitTree tree1 = buildTree(r1, commit1);
-        	CommitTreeDifference diff = new CommitTreeDifference(tree1, null);
-        	diff.compute();
-    		repositoryDifference.addCommitDifference(diff);
+        	CommitTreeDifference diff = new CommitTreeDifference(Long.toString(index++), tree1, null);
+        	if (!diff.isEmpty()) {
+        		repositoryDifference.addCommitDifference(diff);
+        	}
         	
         }
         while(i2.hasNext()) {
         	RevCommit commit2 = i2.next();
 
         	CommitTree tree2 = buildTree(r2, commit2);
-        	CommitTreeDifference diff = new CommitTreeDifference(null, tree2);
-        	diff.compute();
-    		repositoryDifference.addCommitDifference(diff);
+        	CommitTreeDifference diff = new CommitTreeDifference(Long.toString(index++), null, tree2);
+        	if (!diff.isEmpty()) {
+        		repositoryDifference.addCommitDifference(diff);
+        	}
         }
 	    return repositoryDifference;
 	}
@@ -85,6 +99,12 @@ public class GitRepositoryComparator extends RepositoryComparator {
 		CommitTreeNode root = tree.getRoot();
 		Stack<CommitTreeNode> currentPath = new Stack<CommitTreeNode>();
 
+		int parentCount = commit.getParentCount();
+		tree.setMetaProperty("git:parentCount", Integer.toString(parentCount).getBytes("UTF-8"));
+		tree.setMetaProperty("git:comitter", commit.getAuthorIdent() != null ? PropertiesDifference.fromString(commit.getAuthorIdent().toString()) : null);
+		tree.setMetaProperty("git:comitter", commit.getCommitterIdent() != null ? PropertiesDifference.fromString(commit.getCommitterIdent().toString()) : null);
+		tree.setMetaProperty("git:log", PropertiesDifference.fromString(commit.getFullMessage()));
+		
 		ObjectReader reader = repository.getObjectDatabase().newReader();
 		TreeWalk walk = new TreeWalk(reader);
     	try {
@@ -148,6 +168,22 @@ public class GitRepositoryComparator extends RepositoryComparator {
         revWalk.setRetainBody(false);
         
         return revWalk;
+	}
+	
+	private static Map<String, byte[]> getReferences(Repository repository) {
+		Map<String, byte[]> result = new HashMap<String, byte[]>();
+		Map<String, Ref> refs = repository.getAllRefs();
+        for (String refName : refs.keySet()) {
+        	Ref ref = refs.get(refName);
+        	if (ref.isSymbolic()) {
+        		result.put(refName, PropertiesDifference.fromString("symbolic"));
+        	} else if (ref.isPeeled()) {
+        		result.put(refName, PropertiesDifference.fromString("peeled"));
+        	} else {
+        		result.put(refName, null);
+        	}
+        }
+		return result;
 	}
 
 }

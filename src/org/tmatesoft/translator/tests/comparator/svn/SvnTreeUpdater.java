@@ -3,7 +3,7 @@ package org.tmatesoft.translator.tests.comparator.svn;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.util.Iterator;
 import java.util.Stack;
 
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
@@ -11,8 +11,10 @@ import org.tmatesoft.svn.core.SVNCommitInfo;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNProperty;
 import org.tmatesoft.svn.core.SVNPropertyValue;
+import org.tmatesoft.svn.core.SVNRevisionProperty;
 import org.tmatesoft.svn.core.internal.util.SVNPathUtil;
 import org.tmatesoft.svn.core.internal.wc.SVNFileUtil;
 import org.tmatesoft.svn.core.io.ISVNEditor;
@@ -61,9 +63,23 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 				logEntry[0] = entry;
 			}
 		});
+		
+		myTree.clearMetaProperties();
+		SVNProperties metaProperties = new SVNProperties();
+		myRepository.getRevisionProperties(myCurrentRevision + 1, metaProperties);
+		
+		for(@SuppressWarnings({ "rawtypes" }) Iterator names = metaProperties.nameSet().iterator(); names.hasNext();) {
+			String name = (String) names.next();
+			if (!SVNRevisionProperty.DATE.equals(name)) {
+				SVNPropertyValue value = metaProperties.getSVNPropertyValue(name);
+				myTree.setMetaProperty(name, SVNPropertyValue.getPropertyAsBytes(value));
+			}
+		}
+		
 		myRepository.update(myCurrentRevision + 1, null, SVNDepth.INFINITY, false, this, this);
 		myCurrentRevision = (Long) myTree.getProperty("svn:revision");
-		return myTree;
+		
+		return myTree.copy();
 	}
 
 	public void report(ISVNReporter reporter) throws SVNException {
@@ -120,11 +136,7 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 			return;
 		}
 		if (value != null) {
-			try {
-				getCurrentNode().setProperty(name, value.isBinary() ? value.getBytes() : value.getString().getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
+			getCurrentNode().setProperty(name, SVNPropertyValue.getPropertyAsBytes(value));
 		} else {
 			getCurrentNode().setProperty(name, null);
 		}
