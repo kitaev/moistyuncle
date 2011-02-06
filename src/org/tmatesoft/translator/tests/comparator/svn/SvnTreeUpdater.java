@@ -3,6 +3,7 @@ package org.tmatesoft.translator.tests.comparator.svn;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Stack;
 
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
@@ -10,6 +11,7 @@ import org.tmatesoft.svn.core.SVNCommitInfo;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
 import org.tmatesoft.svn.core.SVNProperties;
 import org.tmatesoft.svn.core.SVNProperty;
 import org.tmatesoft.svn.core.SVNPropertyValue;
@@ -60,8 +62,21 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 				logEntry[0] = entry;
 			}
 		});
-		
+
 		myTree.clearMetaProperties();
+		
+		@SuppressWarnings("unchecked")
+		Map<String, SVNLogEntryPath> chandedPaths = logEntry[0].getChangedPaths();
+		for (String path : chandedPaths.keySet()) {
+			SVNLogEntryPath logEntryPath = chandedPaths.get(path);
+			StringBuffer value = new StringBuffer();
+			value.append(logEntryPath.getType());
+			if (logEntryPath.getCopyPath() != null) {
+				value.append(" from ").append(logEntryPath.getCopyPath()).append('@').append(logEntryPath.getCopyRevision());
+			}
+			myTree.setMetaProperty("svn:change " + path, PropertiesDifference.fromString(value.toString()));
+		}
+		
 		SVNProperties metaProperties = new SVNProperties();
 		myRepository.getRevisionProperties(myCurrentRevision + 1, metaProperties);
 		

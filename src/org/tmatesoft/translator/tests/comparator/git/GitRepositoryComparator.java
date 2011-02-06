@@ -15,6 +15,7 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
@@ -104,8 +105,8 @@ public class GitRepositoryComparator extends RepositoryComparator {
 
 		int parentCount = commit.getParentCount();
 		tree.setMetaProperty("git:parentCount", Integer.toString(parentCount).getBytes("UTF-8"));
-		tree.setMetaProperty("git:comitter", commit.getAuthorIdent() != null ? PropertiesDifference.fromString(commit.getAuthorIdent().toString()) : null);
-		tree.setMetaProperty("git:comitter", commit.getCommitterIdent() != null ? PropertiesDifference.fromString(commit.getCommitterIdent().toString()) : null);
+		tree.setMetaProperty("git:author", commit.getAuthorIdent() != null ? PropertiesDifference.fromString(toString(commit.getAuthorIdent())) : null);
+		tree.setMetaProperty("git:comitter", commit.getCommitterIdent() != null ? PropertiesDifference.fromString(toString(commit.getCommitterIdent())) : null);
 		tree.setMetaProperty("git:log", PropertiesDifference.fromString(commit.getFullMessage()));
 		
 		ObjectReader reader = repository.getObjectDatabase().newReader();
@@ -209,4 +210,21 @@ public class GitRepositoryComparator extends RepositoryComparator {
 		return result;
 	}
 
+	private static String toString(PersonIdent ident) {
+		if (ident == null) {
+			return null;
+		}
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append(ident.getName());
+		if (ident.getEmailAddress() != null) {
+			sb.append(", ");
+			sb.append(ident.getEmailAddress());
+		}
+		if (ident.getTimeZone() != null) {
+			sb.append(", ");
+			sb.append(ident.getTimeZone());
+		}
+		return sb.toString();
+	}
 }
