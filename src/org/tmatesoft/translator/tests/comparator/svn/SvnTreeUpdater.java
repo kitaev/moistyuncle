@@ -160,7 +160,6 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 
 	public void closeFile(final String path, String textChecksum) throws SVNException {
 		getCurrentNode().setContent(new IContentLoader() {
-			@Override
 			public byte[] loadContent() {
 				ByteArrayOutputStream contents = new ByteArrayOutputStream();
 				try {

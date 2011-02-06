@@ -132,7 +132,6 @@ public class GitRepositoryComparator extends RepositoryComparator {
     				root = node;
     			} else {
     				IContentLoader contentLoader = new IContentLoader() {
-						@Override
 						public byte[] loadContent() {
 							ObjectLoader loader = null;
 							try {
