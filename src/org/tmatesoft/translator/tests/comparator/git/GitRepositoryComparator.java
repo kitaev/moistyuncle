@@ -11,7 +11,9 @@ import java.util.Stack;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -22,6 +24,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.tmatesoft.translator.tests.comparator.CommitTree;
 import org.tmatesoft.translator.tests.comparator.CommitTreeDifference;
 import org.tmatesoft.translator.tests.comparator.CommitTreeNode;
+import org.tmatesoft.translator.tests.comparator.IContentLoader;
 import org.tmatesoft.translator.tests.comparator.PropertiesDifference;
 import org.tmatesoft.translator.tests.comparator.RepositoryComparator;
 import org.tmatesoft.translator.tests.comparator.RepositoryDifference;
@@ -94,8 +97,8 @@ public class GitRepositoryComparator extends RepositoryComparator {
 	    return repositoryDifference;
 	}
 	
-	private static CommitTree buildTree(Repository repository, RevCommit commit) throws IOException {
-		CommitTree tree = new CommitTree(new GitContentLoader(repository));
+	private static CommitTree buildTree(final Repository repository, RevCommit commit) throws IOException {
+		CommitTree tree = new CommitTree();
 		CommitTreeNode root = tree.getRoot();
 		Stack<CommitTreeNode> currentPath = new Stack<CommitTreeNode>();
 
@@ -120,11 +123,31 @@ public class GitRepositoryComparator extends RepositoryComparator {
     			root = currentPath.peek();
 				depth = walk.getDepth();
     			CommitTreeNode node = root.addChild(walk.getNameString());
-    			node.setId(ObjectId.toString(walk.getObjectId(0)));
+    			final ObjectId id = walk.getObjectId(0);
+    			node.setId(ObjectId.toString(id));
     			if (walk.isSubtree()) {
     				walk.enterSubtree();
     				currentPath.push(node);
     				root = node;
+    			} else {
+    				IContentLoader contentLoader = new IContentLoader() {
+						@Override
+						public byte[] loadContent() {
+							ObjectLoader loader = null;
+							try {
+								loader = repository.getObjectDatabase().open(id);
+								if (loader != null && loader.getType() == Constants.OBJ_BLOB) {
+									return loader.getBytes();	
+								}								
+							} catch (IOException e) {
+							} finally {
+								repository.getObjectDatabase().close();
+							}
+							return PropertiesDifference.fromString("Cannot load file " + ObjectId.toString(id));
+						}
+    					
+    				};
+    				node.setContent(contentLoader, node.getId());
     			}
     		}
     	} finally {

@@ -2,22 +2,22 @@ package org.tmatesoft.translator.tests.comparator;
 
 public class ContentDifference {
 
-	private byte[] myLeftContent;
-	private byte[] myRightContent;
+	private IContentLoader myLeftContentLoader;
+	private IContentLoader myRightContentLoader;
 	private boolean myIsEmpty;
 
-	public ContentDifference(byte[] left, byte[] right) {
-		myLeftContent = left;
-		myRightContent = right;
-		myIsEmpty = compare(getLeftContent(), getRightContent());
+	public ContentDifference(IContentLoader leftLoader, IContentLoader rightLoader) {
+		myLeftContentLoader = leftLoader;
+		myRightContentLoader = rightLoader;
+		myIsEmpty = false;
 	}
 	
 	public byte[] getLeftContent() {
-		return myLeftContent;
+		return myLeftContentLoader != null ? myLeftContentLoader.loadContent() : null;
 	}
 	
 	public byte[] getRightContent() {
-		return myRightContent;
+		return myRightContentLoader != null ? myRightContentLoader.loadContent() : null;
 	}
 
 	public boolean isEmpty() {

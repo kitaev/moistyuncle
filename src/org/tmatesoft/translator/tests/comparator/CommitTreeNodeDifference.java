@@ -70,7 +70,7 @@ public class CommitTreeNodeDifference {
 						getLeftNode().getContentId().equals(getRightNode().getContentId())) {
 					// no difference.
 				} else {
-					ContentDifference contentDifference = new ContentDifference(getLeftNode().getContent(), getRightNode().getContent());
+					ContentDifference contentDifference = new ContentDifference(getLeftNode().getContentLoader(), getRightNode().getContentLoader());
 					if (!contentDifference.isEmpty()) {
 						myContentDifference = contentDifference;
 					}

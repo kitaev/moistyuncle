@@ -1,6 +1,5 @@
 package org.tmatesoft.translator.tests.comparator.svn;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.Iterator;
@@ -21,10 +20,11 @@ import org.tmatesoft.svn.core.io.ISVNEditor;
 import org.tmatesoft.svn.core.io.ISVNReporter;
 import org.tmatesoft.svn.core.io.ISVNReporterBaton;
 import org.tmatesoft.svn.core.io.SVNRepository;
-import org.tmatesoft.svn.core.io.diff.SVNDeltaProcessor;
 import org.tmatesoft.svn.core.io.diff.SVNDiffWindow;
 import org.tmatesoft.translator.tests.comparator.CommitTree;
 import org.tmatesoft.translator.tests.comparator.CommitTreeNode;
+import org.tmatesoft.translator.tests.comparator.IContentLoader;
+import org.tmatesoft.translator.tests.comparator.PropertiesDifference;
 
 public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 
@@ -34,16 +34,13 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 	private CommitTree myTree;
 	
 	private Stack<CommitTreeNode> myCurrentPath;
-	private SVNDeltaProcessor myDeltaProcessor;
-	private ByteArrayOutputStream myNewContents;
 	
 	public SvnTreeUpdater(SVNRepository repository) throws SVNException {
 		myRepository = repository;
 		myLatestRevision = myRepository.getLatestRevision();
 		myCurrentRevision = 0;
-		myTree = new CommitTree(null);
+		myTree = new CommitTree();
 		myCurrentPath = new Stack<CommitTreeNode>();
-		myDeltaProcessor = new SVNDeltaProcessor();
 	}
 	
 	public void close() {
@@ -76,7 +73,7 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 			}
 		}
 		
-		myRepository.update(myCurrentRevision + 1, null, SVNDepth.INFINITY, false, this, this);
+		myRepository.status(myCurrentRevision + 1, null, SVNDepth.INFINITY, this, this);
 		myCurrentRevision = (Long) myTree.getProperty("svn:revision");
 		
 		return myTree.copy();
@@ -88,25 +85,13 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 	}
 
 	public void applyTextDelta(String path, String baseChecksum) throws SVNException {
-		// save current contents.
-		byte[] content = getCurrentNode().getContent();
-		if (content == null) {
-			content = new byte[0];
-		}
-		myNewContents = new ByteArrayOutputStream();
-		myDeltaProcessor.applyTextDelta(new ByteArrayInputStream(content), myNewContents, true);
 	}
 
 	public OutputStream textDeltaChunk(String path, SVNDiffWindow diffWindow) throws SVNException {
-		return myDeltaProcessor.textDeltaChunk(diffWindow);
+		return null;
 	}
 
 	public void textDeltaEnd(String path) throws SVNException {
-		String contentChecksum = myDeltaProcessor.textDeltaEnd();
-		SVNFileUtil.closeFile(myNewContents);
-
-		getCurrentNode().setContent(myNewContents.toByteArray(), contentChecksum);
-		myNewContents = null;
 	}
 
 	public void targetRevision(long revision) throws SVNException {
@@ -158,7 +143,22 @@ public class SvnTreeUpdater implements ISVNEditor, ISVNReporterBaton {
 		changeDirProperty(propertyName, propertyValue);
 	}
 
-	public void closeFile(String path, String textChecksum) throws SVNException {
+	public void closeFile(final String path, String textChecksum) throws SVNException {
+		getCurrentNode().setContent(new IContentLoader() {
+			@Override
+			public byte[] loadContent() {
+				ByteArrayOutputStream contents = new ByteArrayOutputStream();
+				try {
+					myRepository.getFile(path, myCurrentRevision + 1, null, contents);
+				} catch (SVNException e) {
+					return PropertiesDifference.fromString("Cannot load file content from " + path + "@" + (myCurrentRevision + 1));
+				} finally {
+					SVNFileUtil.closeFile(contents);
+				}
+				return contents.toByteArray();
+			}
+		}, textChecksum);
+		
 		closeDir();
 	}
 

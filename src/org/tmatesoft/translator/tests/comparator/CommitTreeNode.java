@@ -8,13 +8,14 @@ public class CommitTreeNode {
 
 	private CommitTree myTree;
 	private Map<String, byte[]> myProperties;
-	private byte[] myContents;
+	private byte[] myContent;
 	private Map<String,CommitTreeNode> myChildren;
 
 	private String myName;
 	private CommitTreeNode myParent;
 	private String myId;
 	private String myContentChecksum;
+	private IContentLoader myContentLoader;
 
 	public CommitTreeNode(CommitTree tree, CommitTreeNode parent, String name) {
 		myTree = tree;
@@ -26,7 +27,7 @@ public class CommitTreeNode {
 		CommitTreeNode copy = new CommitTreeNode(copyTree, copyParent, myName);
 		copy.myId = myId;
 		copy.myContentChecksum = myContentChecksum;
-		copy.myContents = myContents;
+		copy.myContent = myContent;
 		if (myProperties != null) {
 			copy.myProperties = new HashMap<String, byte[]>(myProperties);
 		}
@@ -52,13 +53,8 @@ public class CommitTreeNode {
 		}
 	}
 	
-	public byte[] getContent() {
-		if (myContents == null && hasId() && getTree().getContentLoader() != null) {
-			if (getTree().getContentLoader().hasContent(getId())) {
-				myContents = getTree().getContentLoader().loadContent(getId());
-			}
-		}
-		return myContents;
+	public IContentLoader getContentLoader() {
+		return myContentLoader;
 	}
 	
 	public CommitTreeNode getParent() {
@@ -76,13 +72,10 @@ public class CommitTreeNode {
 	}
 	
 	public boolean isDirectory() {
-		if (myContentChecksum != null) {
+		if (getContentId() != null) {
 			return false;
 		}
-		if (getTree().getContentLoader() != null && hasId()) {
-			return !getTree().getContentLoader().hasContent(getId());
-		}
-		return getContent() == null;
+		return getContentLoader() == null;
 	}
 	
 	public CommitTreeNode addChild(String name) {
@@ -147,56 +140,9 @@ public class CommitTreeNode {
 		return getContentId() != null;
 	}
 
-	public void setContent(byte[] contents, String contentChecksum) {
-		myContents = contents;
+	public void setContent(IContentLoader loader, String contentChecksum) {
+		myContentLoader = loader;
 		myContentChecksum = contentChecksum;
-	}
-	
-	public boolean hasPropertyDifference(CommitTreeNode node) {
-		Map<String, byte[]> other = node.getProperties();
-		for (String name : getProperties().keySet()) {
-			byte[] otherValue = other.get(name);
-			if (!compare(getProperties().get(name), otherValue)) {
-				return true;
-			}
-		}
-		for (String name : other.keySet()) {
-			byte[] value = getProperties().get(name);
-			if (!compare(other.get(name), value)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public boolean hasContentsDifference(CommitTreeNode node) {
-		if (myContentChecksum != null && node.myContentChecksum != null &&
-				myContentChecksum.equals(node.myContentChecksum)) {
-			return false;
-		}
-		return !compare(getContent(), node.getContent());
-	}
-	
-	public boolean hasTypeDifference(CommitTreeNode node) {
-		return isDirectory() != node.isDirectory();
-	}
-
-	private static boolean compare(byte[] bs, byte[] bs2) {
-		if (bs == bs2) {
-			return true;
-		}
-		if (bs == null || bs2 == null) {
-			return false;
-		}
-		if (bs.length != bs2.length) {
-			return false;
-		}
-		for (int i = 0; i < bs2.length; i++) {
-			if (bs[i] != bs2[i]) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	@Override
