@@ -226,4 +226,6 @@ public class GitRepositoryComparator extends RepositoryComparator {
 		}
 		return sb.toString();
 	}
+	
+	private static void buildRepositoryGraph(RevCommit left, RevCommit right)
 }

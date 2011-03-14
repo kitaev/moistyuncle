@@ -1,11 +1,10 @@
 package org.tmatesoft.translator.tests.comparator;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public class CommitTreeDifference {
-	
-	private CommitTreeWalker myCommitTreeWalker;
 	
 	private List<CommitTreeNodeDifference> myNodeDifferences;
 	private PropertiesDifference myMetaPropertiesDifference;
@@ -13,11 +12,12 @@ public class CommitTreeDifference {
 	private CommitTree myLeftTree;
 	private CommitTree myRightTree;
 	private String myCommitName;
+	
+	private List<CommitTreeDifference> myParents;
 
 	public CommitTreeDifference(String commitName, CommitTree left, CommitTree right) {
 		myLeftTree = left;
 		myRightTree = right;
-		myCommitTreeWalker = new CommitTreeWalker(left, right);
 		myCommitName = commitName;
 	}
 	
@@ -56,26 +56,45 @@ public class CommitTreeDifference {
 		return getNodeDifferences() != null && !getNodeDifferences().isEmpty();
 	}
 	
+	public int getParentsCount() {
+		return myParents == null ? 0 : myParents.size();
+	}
+	
+	public CommitTreeDifference getParent(int nth) {
+		return myParents == null || nth >= myParents.size() ? null : myParents.get(nth);
+	}
+	
+	public CommitTreeDifference[] getParents() {
+		return myParents == null ? new CommitTreeDifference[0] : myParents.toArray(new CommitTreeDifference[myParents.size()]);
+	}
+	
+	public void addParent(CommitTreeDifference parent) {
+		if (myParents == null) {
+			myParents = new ArrayList<CommitTreeDifference>();
+		}
+		myParents.add(parent);
+	}
+	
 	private void compute() {
 		if (myNodeDifferences != null) {
 			return;
 		}
 		myNodeDifferences = new LinkedList<CommitTreeNodeDifference>();
-		while(myCommitTreeWalker.getCurrentPath() != null) {
-			CommitTreeNode leftNode = myCommitTreeWalker.getLeftNode();
-			CommitTreeNode rightNode = myCommitTreeWalker.getRightNode();
+		CommitTreeWalker walker = new CommitTreeWalker(getLeftTree(), getRightTree());
+		while(walker.getCurrentPath() != null) {
+			CommitTreeNode leftNode = walker.getLeftNode();
+			CommitTreeNode rightNode = walker.getRightNode();
 			CommitTreeNodeDifference diff = new CommitTreeNodeDifference(leftNode, rightNode);
 			if (!diff.isEmpty()) {
 				myNodeDifferences.add(diff);
 				if (diff.isStructuralDifference()) {
-					myCommitTreeWalker.skipChildren();
+					walker.skipChildren();
 				} else {
-					myCommitTreeWalker.next();
+					walker.next();
 				}
 			} else {
-				myCommitTreeWalker.next();
+				walker.next();
 			}
-			
 		}
 		
 		PropertiesDifference propertiesDiff = new PropertiesDifference(
@@ -85,7 +104,6 @@ public class CommitTreeDifference {
 		if (!propertiesDiff.isEmpty()) {
 			myMetaPropertiesDifference = propertiesDiff;
 		}
-		myCommitTreeWalker = null;
 	}
 
 	@Override
